@@ -68,7 +68,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             else { return nil }
             var key: String?, defaultValue: String?
             // find the icarusAnnotation annotation tag
-            guard let attribute = property.attributes.first(where: { $0.as(AttributeSyntax.self)!.attributeName.description == "icarusAnnotation" })?.as(AttributeSyntax.self),
+            guard let attribute = property.attributes.first(where: { $0.as(AttributeSyntax.self)!.attributeName.description == "zcAnnotation" })?.as(AttributeSyntax.self),
                   let arguments = attribute.arguments?.as(LabeledExprListSyntax.self)
             else { return (name: name, type: type, key: key ?? name, defaultValue: defaultValue) }
             // extracting the key and default values from the annotation and parsing them according to the syntax tree structure.
@@ -83,7 +83,6 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 default: break
                 }
             }
-            // 默认键为属性名称
             if type.description == "[String: Any]" {
                 defaultValue = defaultValue ?? "[:]"
             }
@@ -122,9 +121,9 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments {
                 if argument.type.description == "[String: Any]" {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode([String: Any].self, forKey: .\(argument.key))) ?? \(argument.defaultValue ?? "[:]")")
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode([String: Any].self, forKey: .\(argument.key))) ?? \("[:]")")
                 } else if argument.type.description == "[Any]" {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode([Any].self, forKey: .\(argument.key))) ?? \(argument.defaultValue ?? "[]")")
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode([Any].self, forKey: .\(argument.key))) ?? \("[]")")
                 } else {
                     ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode(\(argument.type).self, forKey: .\(argument.key))) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
                 }
