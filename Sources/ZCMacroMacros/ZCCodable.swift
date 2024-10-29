@@ -83,10 +83,9 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 default: break
                 }
             }
-            if type.description == "[String: Any]" {
+            if type.isDictionaryWithKeyType("String", valueType: "Any") {
                 defaultValue = defaultValue ?? "[:]"
-            }
-            if type.description == "[Any]" {
+            } else if type.isArrayOfAny() {
                 defaultValue = defaultValue ?? "[]"
             }
             // the property name is used as the default key
@@ -120,12 +119,12 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         let decoder = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: "public init(from decoder: Decoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments {
-                if argument.type.description == "[String: Any]" {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode([String: Any].self, forKey: .\(argument.key))) ?? \("[:]")")
-                } else if argument.type.description == "[Any]" {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode([Any].self, forKey: .\(argument.key))) ?? \("[]")")
+                if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decodeIfPresent([String: Any].self, forKey: .\(argument.key))) ?? \("[:]")")
+                } else if argument.type.isArrayOfAny() {
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decodeIfPresent([Any].self, forKey: .\(argument.key))) ?? \("[]")")
                 } else {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decode(\(argument.type).self, forKey: .\(argument.key))) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decodeIfPresent(\(argument.type).self, forKey: .\(argument.key))) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
                 }
             }
         })
@@ -134,13 +133,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         let encoder = try FunctionDeclSyntax(SyntaxNodeString(stringLiteral: "public func encode(to encoder: Encoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "var container = encoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments {
-                if argument.type.description == "[String: Any]" {
-                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name) as? [String: Any], forKey: .\(argument.key))")
-                } else if argument.type.description == "[Any]" {
-                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name) as? [Any], forKey: .\(argument.key))")
-                } else {
-                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name), forKey: .\(argument.key))")
-                }
+                ExprSyntax(stringLiteral: "try container.encodeIfPresent(\(argument.name), forKey: .\(argument.key))")
             }
         })
         
@@ -155,6 +148,22 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
 }
 
 extension TypeSyntax {
+    func isDictionaryWithKeyType(_ keyType: String, valueType: String) -> Bool {
+        guard let dictionaryType = self.as(DictionaryTypeSyntax.self) else {
+            return false
+        }
+        let key = dictionaryType.key.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = dictionaryType.value.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        return key == keyType && value == valueType
+    }
+
+    func isArrayOfAny() -> Bool {
+        guard let arrayType = self.as(ArrayTypeSyntax.self) else {
+            return false
+        }
+        let elementType = arrayType.element.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        return elementType == "Any"
+    }
     var defaultValueExpression: String {
         return "\(self).defaultValue"
     }
