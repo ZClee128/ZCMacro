@@ -1,8 +1,124 @@
 import ZCMacro
+import Foundation
 
-let a = 17
-let b = 25
+@zcCodable
+struct Test{
+  let name: String
+  @zcAnnotation(key: "new_age", default: 99)
+  let age: Int
+    @zcAnnotation(key: "new_add", default: "aa")
+  let address: String
+  let optional: String?
+  let array: [String]
+  let dic: [String: Int?]
+  let people: People
+}
 
-let (result, code) = #stringify(a + b)
+@zcCodable
+struct Generic<T: ZCCodable> {
+  let value: T
+  let a: Int
+}
 
-print("The value \(result) was produced by the code \"\(code)\"")
+// key不存在 解析
+let dic: [String: Any] = [:]
+
+do {
+  let jsonData = try JSONSerialization.data(withJSONObject: dic, options: [])
+  let value = try JSONDecoder().decode(Generic<Test>.self, from: jsonData)
+  print(value)
+} catch {
+  print("Error: \(error)")
+}
+
+let a = 99
+
+@zcCodable
+struct People{
+//  @icarusAnnotation(default: "aaaad")
+  let name: String
+//  @icarusAnnotation(key: "new_age", default: a + 1)
+  let age: Int
+//    @icarusAnnotation(default: Sex.female)
+    let sex: Sex
+}
+
+let peopleDic: [String: Any] = ["name": "ldc", "age": false]
+let testDic: [String: Any] = [:]
+
+do {
+  let value: People = try decode(peopleDic)
+  print(value)
+} catch {
+  print("Error: \(error)")
+}
+
+extension Int: ZCCodable {
+  public static var defaultValue: Int { 0 }
+}
+
+extension String: ZCCodable {
+  public static var defaultValue: String { "" }
+}
+
+extension Double: ZCCodable {
+  public static var defaultValue: Double { 0.0 }
+}
+
+extension Bool: ZCCodable {
+  public static var defaultValue: Bool { false }
+}
+
+extension Optional: ZCCodable where Wrapped: ZCCodable {
+  public static var defaultValue: Optional<Wrapped> { .none }
+}
+
+extension Dictionary: ZCCodable where Value: ZCCodable, Key: ZCCodable {
+  public static var defaultValue: Dictionary<Key, Value> { [:] }
+}
+
+extension Array: ZCCodable where Element: ZCCodable {
+  public static var defaultValue: Array<Element> { [] }
+}
+
+func decode<T: Codable>(_ dic: [String: Any]) throws -> T {
+  let jsonData = try JSONSerialization.data(withJSONObject: dic, options: [])
+  return try JSONDecoder().decode(T.self, from: jsonData)
+}
+
+@zcMirror
+struct MirrorTest {
+    let name: String
+    let age: Int
+    let people: People
+    let optional: Int?
+}
+
+print(MirrorTest.mirror)
+
+@zcCodable
+struct Address {
+  let country: String
+  let province: String
+  let city: String
+}
+
+enum Sex: ZCCodable {
+  case male
+  case female
+  
+  static var defaultValue: Sex { .male }
+}
+
+@zcCodable
+struct Student {
+  @zcAnnotation(key: "new_name")
+  let name: String
+  @zcAnnotation(default: 100)
+  let age: Int
+  let address: Address
+  @zcAnnotation(default: true)
+  let isBoarder: Bool
+  @zcAnnotation(key: "_sex", default: Sex.female)
+  let sex: Sex
+}

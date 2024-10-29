@@ -6,6 +6,25 @@
 ///
 ///     #stringify(x + y)
 ///
-/// produces a tuple `(x + y, "x + y")`.
-@freestanding(expression)
-public macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "ZCMacroMacros", type: "StringifyMacro")
+import Foundation
+
+public protocol ZCCodable: Codable {
+  static var defaultValue: Self { get }
+}
+
+public protocol ZCMirror {
+    static var mirror: [String: Any.Type] { get }
+}
+
+@attached(extension, conformances: ZCCodable)
+@attached(member, names: named(init), named(defaultValue), named(CodingKeys), named(encode(to:)), named(init(from:)))
+public macro zcCodable() = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableMacro")
+
+@attached(peer)
+public macro zcAnnotation<T: ZCCodable>(key: String? = nil, default: T) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
+@attached(peer)
+public macro zcAnnotation(key: String) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
+
+@attached(extension, conformances: ZCMirror)
+@attached(member, names: named(mirror))
+public macro zcMirror() = #externalMacro(module: "ZCMacroMacros", type: "MirrorMacro")
