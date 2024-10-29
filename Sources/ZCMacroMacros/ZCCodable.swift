@@ -120,11 +120,11 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments {
                 if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decodeIfPresent([String: Any].self, forKey: .\(argument.key))) ?? \("[:]")")
+                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([String: Any].self, forKey: .\(argument.key))")
                 } else if argument.type.isArrayOfAny() {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decodeIfPresent([Any].self, forKey: .\(argument.key))) ?? \("[]")")
+                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([Any].self, forKey: .\(argument.key))")
                 } else {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try? container.decodeIfPresent(\(argument.type).self, forKey: .\(argument.key))) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
+                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent(\(argument.type).self, forKey: .\(argument.key)) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
                 }
             }
         })
