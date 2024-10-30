@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'ZCMacro'
-  s.version          = '0.1.5'
+  s.version          = '0.1.6'
   s.summary          = 'A proof of concept macro to show they can work with cocoapods.'
   s.description      = <<-DESC
 A proof of concept macro to show they can work with cocoapods.
@@ -19,8 +19,14 @@ A proof of concept macro to show they can work with cocoapods.
   s.pod_target_xcconfig = {
     'OTHER_SWIFT_FLAGS' => '-load-plugin-executable ${PODS_ROOT}/ZCMacro/macros/ZCMacroMacros#ZCMacroMacros'
   }
+#  s.pod_target_xcconfig = {
+#   'OTHER_SWIFT_FLAGS' => '-load-plugin-executable /Users/yxd_mbp/Desktop/ng个人/ZCMacro/macros/ZCMacroMacros#ZCMacroMacros'
+#  }
   # 4
   s.user_target_xcconfig = {
     'OTHER_SWIFT_FLAGS' => '-load-plugin-executable ${PODS_ROOT}/ZCMacro/macros/ZCMacroMacros#ZCMacroMacros'
   }
+#  s.user_target_xcconfig = {
+#    'OTHER_SWIFT_FLAGS' => '-load-plugin-executable /Users/yxd_mbp/Desktop/ng个人/ZCMacro/macros/ZCMacroMacros#ZCMacroMacros'
+#  }
 end

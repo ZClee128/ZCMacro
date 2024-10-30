@@ -102,8 +102,18 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             }
         )
         
+        let arr = arguments.map { tup in
+            if tup.type.isArrayOfAny() {
+                return "_\(tup.name): \([])"
+            }
+            if tup.type.isDictionaryWithKeyType("String", valueType: "Any") {
+                return "_\(tup.name): \([:])"
+            }
+            return "_\(tup.name): \(tup.defaultValue ?? tup.type.defaultValueExpression)"
+        }
+        
         // MARK: - defaultValue
-        let defaultBody: ExprSyntax = "Self(\(raw: arguments.map { "_\($0.name): \($0.defaultValue ?? $0.type.defaultValueExpression)" }.joined(separator: ",")))"
+        let defaultBody: ExprSyntax = "Self(\(raw: arr.joined(separator: ",")))"
         let defaultDeclSyntax: VariableDeclSyntax = try VariableDeclSyntax("public static var defaultValue: Self") {
             defaultBody
         }
@@ -120,9 +130,9 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments {
                 if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([String: Any].self, forKey: .\(argument.key))")
+                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([String: AnyDecodable].self, forKey: .\(argument.key))?.mapValues { $0.value } ?? [:]")
                 } else if argument.type.isArrayOfAny() {
-                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([Any].self, forKey: .\(argument.key))")
+                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([AnyDecodable].self, forKey: .\(argument.key))?.map { $0.value } ?? []")
                 } else {
                     ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent(\(argument.type).self, forKey: .\(argument.key)) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
                 }
@@ -133,7 +143,13 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         let encoder = try FunctionDeclSyntax(SyntaxNodeString(stringLiteral: "public func encode(to encoder: Encoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "var container = encoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments {
-                ExprSyntax(stringLiteral: "try container.encodeIfPresent(\(argument.name), forKey: .\(argument.key))")
+                if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
+                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(argument.key))")
+                } else if argument.type.isArrayOfAny() {
+                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name).map { AnyEncodable($0) }, forKey: .\(argument.key))")
+                } else {
+                    ExprSyntax(stringLiteral: "try container.encodeIfPresent(\(argument.name), forKey: .\(argument.key))")
+                }
             }
         })
         
