@@ -26,6 +26,8 @@ public macro zcAnnotation<T: ZCCodable>(key: [String]? = nil, default: T) = #ext
 public macro zcAnnotation(key: [String]) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
 @attached(peer)
 public macro zcAnnotation<T: ZCCodable>(key: [String]? = nil, default: T, ignore: Bool = false) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
+@attached(peer)
+public macro zcAnnotation(key: [String]? = nil, ignore: Bool = false) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
 
 @attached(extension, conformances: ZCMirror)
 @attached(member, names: named(mirror))

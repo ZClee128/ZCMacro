@@ -13,7 +13,8 @@ struct Test{
     var optional: Bool?
     var array: [String]
     var dic: [String: Any]
-    var people: People
+    @zcAnnotation(default: ZCArchiverBox(NSAttributedString(string: "")), ignore: true)
+    var people: ZCArchiverBox<NSAttributedString> = ZCArchiverBox(NSAttributedString(string: ""))
 }
 
 @zcCodable

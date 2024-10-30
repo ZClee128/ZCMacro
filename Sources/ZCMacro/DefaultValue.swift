@@ -107,3 +107,56 @@ extension Dictionary: ZCCodable where Value: ZCCodable, Key: ZCCodable {
 extension Array: ZCCodable where Element: ZCCodable {
   public static var defaultValue: Array<Element> { [] }
 }
+
+public struct ZCArchiverBox<T: NSObject & NSCoding>: ZCCodable {
+    public static var defaultValue: ZCArchiverBox<T> {
+        // Check if T is NSAttributedString
+        if T.self == NSAttributedString.self {
+            return ZCArchiverBox(NSAttributedString(string: "") as! T)
+        }
+        // Check if T is NSMutableAttributedString
+        else if T.self == NSMutableAttributedString.self {
+            return ZCArchiverBox(NSMutableAttributedString(string: "") as! T)
+        }
+        // Check if T is NSArray
+        else if T.self == NSArray.self {
+            return ZCArchiverBox([] as! T)
+        }
+        // Check if T is NSDictionary
+        else if T.self == NSDictionary.self {
+            return ZCArchiverBox([:] as! T)
+        }
+        // Check if T is NSString
+        else if T.self == NSString.self {
+            return ZCArchiverBox("" as! T)
+        }
+        // Check if T is NSNumber
+        else if T.self == NSNumber.self {
+            return ZCArchiverBox(0 as! T) // Default number
+        }
+        return ZCArchiverBox("" as! T)
+    }
+    
+    public let value: T
+    
+    public init(_ value: T) {
+        self.value = value
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let data = try container.decode(Data.self)
+        
+        guard let objectValue = try NSKeyedUnarchiver.unarchivedObject(ofClass: T.self, from: data) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Couldn't unarchive object")
+        }
+        self.value = objectValue
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        let data = try NSKeyedArchiver.archivedData(withRootObject: value, requiringSecureCoding: false)
+        try container.encode(data)
+    }
+}
+
