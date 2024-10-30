@@ -3,7 +3,7 @@ import ZCMacroMacros
 import Foundation
 
 @zcCodable
-struct Test {
+final class Test {
     var name: String?
     @zcAnnotation(key: ["new_age","age2"],default: 99)
     var age: Int?
@@ -23,7 +23,7 @@ struct Generic<T: ZCCodable> {
 }
 
 // key不存在 解析
-let dic: [String: Any] = [:]
+let dic: [String: Any] = ["new_age": 1]
 
 do {
     let jsonData = try JSONSerialization.data(withJSONObject: dic, options: [])

@@ -146,19 +146,32 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 }
             }
         })
-    
+        print(defineCodingKeys.description)
         // MARK: - Decoder
         let decoder = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: "\(reqString)public init(from decoder: Decoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments where !argument.ignore {
-                for key in argument.keys {
+                // 对于每个 argument 的 key 生成一个解码表达式
+                let decodingExpression = argument.keys.map { key in
                     if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                        ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([String: AnyDecodable].self, forKey: .\(key))?.mapValues { $0.value } ?? [:]")
+                        return "container.decodeIfPresent([String: AnyDecodable].self, forKey: .\(key))"
                     } else if argument.type.isArrayOfAny() {
-                        ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([AnyDecodable].self, forKey: .\(key))?.map { $0.value } ?? []")
+                        return "container.decodeIfPresent([AnyDecodable].self, forKey: .\(key))"
                     } else {
-                        ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent(\(argument.type).self, forKey: .\(key)) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
+                       return "container.decodeIfPresent(\(argument.type).self, forKey: .\(key))"
                     }
+                }.joined(separator: " ?? ")
+                
+                // 使用最后的解码表达式，结合默认值
+                let finalExpression = "\(decodingExpression) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)"
+                
+                // 根据类型构建相应的赋值表达式
+                if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.mapValues { $0.value } ?? [:]")
+                } else if argument.type.isArrayOfAny() {
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? []")
+                } else {
+                    ExprSyntax(stringLiteral: "try \(argument.name) = \(finalExpression)")
                 }
             }
         })
@@ -167,14 +180,20 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         let encoder = try FunctionDeclSyntax(SyntaxNodeString(stringLiteral: "public func encode(to encoder: Encoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "var container = encoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments where !argument.ignore {
-                for key in argument.keys {
+                // 创建一个编码表达式
+                let encodingExpressions = argument.keys.map { key in
                     if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                        ExprSyntax(stringLiteral: "try container.encode(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(key))")
+                        return "try container.encode(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(key))"
                     } else if argument.type.isArrayOfAny() {
-                        ExprSyntax(stringLiteral: "try container.encode(\(argument.name).map { AnyEncodable($0) }, forKey: .\(key))")
+                        return "try container.encode(\(argument.name).map { AnyEncodable($0) }, forKey: .\(key))"
                     } else {
-                        ExprSyntax(stringLiteral: "try container.encodeIfPresent(\(argument.name), forKey: .\(key))")
+                        return "try container.encodeIfPresent(\(argument.name), forKey: .\(key))"
                     }
+                }
+                
+                // 将所有编码表达式连接在一起
+                for encodingExpression in encodingExpressions {
+                    ExprSyntax(stringLiteral: encodingExpression)
                 }
             }
         })
