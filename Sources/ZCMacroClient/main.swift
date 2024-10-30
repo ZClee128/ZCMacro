@@ -3,15 +3,14 @@ import ZCMacroMacros
 import Foundation
 
 @zcCodable
-struct Test{
-    var name: String
-    @zcAnnotation(key: ["new_age", "age2"], default: 99)
-    var age: Int
+struct Test {
+    var name: String?
+    @zcAnnotation(key: ["new_age","age2"],default: 99)
+    var age: Int?
     @zcAnnotation(key: ["new_add"], default: "aa")
-    var address: String
-    @zcAnnotation(default: true, ignore: true)
+    var address: String?
     var optional: Bool?
-    var array: [String]
+    var array: [String]?
     var dic: [String: Any]
     @zcAnnotation(default: ZCArchiverBox(NSAttributedString(string: "")), ignore: true)
     var people: ZCArchiverBox<NSAttributedString> = ZCArchiverBox(NSAttributedString(string: ""))
@@ -19,8 +18,8 @@ struct Test{
 
 @zcCodable
 struct Generic<T: ZCCodable> {
-    let value: T
-    let a: Int
+    var value: T
+    var a: Int
 }
 
 // key不存在 解析
@@ -28,7 +27,7 @@ let dic: [String: Any] = [:]
 
 do {
     let jsonData = try JSONSerialization.data(withJSONObject: dic, options: [])
-    let value = try JSONDecoder().decode(Generic<Test>.self, from: jsonData)
+    let value = try JSONDecoder().decode(Test.self, from: jsonData)
     print(value)
 } catch {
     print("Error: \(error)")

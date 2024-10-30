@@ -52,6 +52,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         providingMembersOf declaration: some DeclGroupSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
+        var decls: [DeclSyntax] = []
         // get stored properties
         let storedProperties: [VariableDeclSyntax] = try {
             if let classDeclaration = declaration.as(ClassDeclSyntax.self) {
@@ -101,17 +102,26 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             // the property name is used as the default key
             return (name: name, type: type, keys: keys, defaultValue: defaultValue, ignore: ignore)
         }
-        
+        var reqString = ""
+        let typeName: String
+        if let classDecl = declaration.as(ClassDeclSyntax.self) {
+            reqString = "required "
+            typeName = classDecl.name.text
+        } else if let structDecl = declaration.as(StructDeclSyntax.self) {
+            typeName = structDecl.name.text
+        } else {
+            typeName = "Self" // 默认使用 Self
+        }
         // MARK: - _init
         let _initDeclSyntax = try InitializerDeclSyntax(
-            SyntaxNodeString(stringLiteral: "private init(\(arguments.map { "_\($0.name): \($0.type)" }.joined(separator: ", ")))"),
+            SyntaxNodeString(stringLiteral: "\(reqString)public init(\(arguments.map { "_\($0.name): \($0.type)" }.joined(separator: ", ")))"),
             bodyBuilder: {
                 for argument in arguments {
                     ExprSyntax(stringLiteral: "self.\(argument.name) = _\(argument.name)")
                 }
             }
         )
-        
+
         let arr = arguments.map { tup in
             if tup.type.isArrayOfAny() {
                 return "_\(tup.name): \([])"
@@ -121,10 +131,10 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             }
             return "_\(tup.name): \(tup.defaultValue ?? tup.type.defaultValueExpression)"
         }
-        
+
         // MARK: - defaultValue
-        let defaultBody: ExprSyntax = "Self(\(raw: arr.joined(separator: ",")))"
-        let defaultDeclSyntax: VariableDeclSyntax = try VariableDeclSyntax("public static var defaultValue: Self") {
+        let defaultBody: ExprSyntax = "\(raw: typeName)(\(raw: arr.joined(separator: ",")))"
+        let defaultDeclSyntax: VariableDeclSyntax = try VariableDeclSyntax("public static var defaultValue: \(raw: typeName)") {
             defaultBody
         }
         
@@ -136,9 +146,9 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 }
             }
         })
-        
+    
         // MARK: - Decoder
-        let decoder = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: "public init(from decoder: Decoder) throws"), bodyBuilder: {
+        let decoder = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: "\(reqString)public init(from decoder: Decoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
             for argument in arguments where !argument.ignore {
                 for key in argument.keys {
@@ -168,14 +178,12 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 }
             }
         })
-        
-        return [
-            DeclSyntax(defineCodingKeys),
-            DeclSyntax(decoder),
-            DeclSyntax(encoder),
-            DeclSyntax(_initDeclSyntax),
-            DeclSyntax(defaultDeclSyntax)
-        ]
+        decls.append(contentsOf: [DeclSyntax(defineCodingKeys),
+                                  DeclSyntax(decoder),
+                                  DeclSyntax(encoder),
+                                  DeclSyntax(_initDeclSyntax),
+                                  DeclSyntax(defaultDeclSyntax)])
+        return decls
     }
 }
 
@@ -196,6 +204,14 @@ extension TypeSyntax {
         let elementType = arrayType.element.description.trimmingCharacters(in: .whitespacesAndNewlines)
         return elementType == "Any"
     }
+    
+    func isClassType() -> Bool {
+        if self.as(ClassDeclSyntax.self) != nil {
+            return true
+        }
+        return false
+    }
+    
     var defaultValueExpression: String {
         return "\(self).defaultValue"
     }
