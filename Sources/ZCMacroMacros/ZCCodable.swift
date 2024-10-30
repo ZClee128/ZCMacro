@@ -63,23 +63,33 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
             }
         }()
         // unpacking the property name and type of a stored property
-        let arguments = storedProperties.compactMap { property -> (name: String, type: TypeSyntax, key: String, defaultValue: String?)? in
+        let arguments = storedProperties.compactMap { property -> (name: String, type: TypeSyntax, keys: [String], defaultValue: String?, ignore: Bool)? in
             guard let name = property.name, let type = property.type
             else { return nil }
-            var key: String?, defaultValue: String?
+            var keys: [String] = [name], defaultValue: String?, ignore = false
             // find the icarusAnnotation annotation tag
             guard let attribute = property.attributes.first(where: { $0.as(AttributeSyntax.self)!.attributeName.description == "zcAnnotation" })?.as(AttributeSyntax.self),
                   let arguments = attribute.arguments?.as(LabeledExprListSyntax.self)
-            else { return (name: name, type: type, key: key ?? name, defaultValue: defaultValue) }
+            else { return (name: name, type: type, keys: keys, defaultValue: defaultValue, ignore: ignore)
+            }
             // extracting the key and default values from the annotation and parsing them according to the syntax tree structure.
             arguments.forEach {
                 let argument = $0.as(LabeledExprSyntax.self)
                 let expression = argument?.expression.as(StringLiteralExprSyntax.self)
                 let segments = expression?.segments.first?.as(StringSegmentSyntax.self)
                 let content = segments?.content
+                let argumentValue = argument?.expression
                 switch argument?.label?.text {
-                case "key": key = content?.text
-                case "default": defaultValue = argument?.expression.description
+                case "key":
+                    if let arrayExpr = argumentValue?.as(ArrayExprSyntax.self) {
+                        keys = arrayExpr.elements.compactMap { $0.expression.as(StringLiteralExprSyntax.self)?.segments.first?.as(StringSegmentSyntax.self)?.content.text }
+                    } else if let key = content?.text {
+                        keys = [key]
+                    }
+                case "default": defaultValue = argumentValue?.description
+                case "ignore":
+                    let literal = argumentValue?.as(BooleanLiteralExprSyntax.self)?.literal.text
+                    ignore = (literal == "true")
                 default: break
                 }
             }
@@ -89,7 +99,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 defaultValue = defaultValue ?? "[]"
             }
             // the property name is used as the default key
-            return (name: name, type: type, key: key ?? name, defaultValue: defaultValue)
+            return (name: name, type: type, keys: keys, defaultValue: defaultValue, ignore: ignore)
         }
         
         // MARK: - _init
@@ -120,21 +130,25 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         
         // MARK: - CodingKeys
         let defineCodingKeys = try EnumDeclSyntax(SyntaxNodeString(stringLiteral: "public enum CodingKeys: String, CodingKey"), membersBuilder: {
-            for argument in arguments {
-                DeclSyntax(stringLiteral: "case \(argument.key)")
+            for argument in arguments where !argument.ignore {
+                for key in argument.keys {
+                    DeclSyntax(stringLiteral: "case \(key)")
+                }
             }
         })
         
         // MARK: - Decoder
         let decoder = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: "public init(from decoder: Decoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
-            for argument in arguments {
-                if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([String: AnyDecodable].self, forKey: .\(argument.key))?.mapValues { $0.value } ?? [:]")
-                } else if argument.type.isArrayOfAny() {
-                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([AnyDecodable].self, forKey: .\(argument.key))?.map { $0.value } ?? []")
-                } else {
-                    ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent(\(argument.type).self, forKey: .\(argument.key)) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
+            for argument in arguments where !argument.ignore {
+                for key in argument.keys {
+                    if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
+                        ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([String: AnyDecodable].self, forKey: .\(key))?.mapValues { $0.value } ?? [:]")
+                    } else if argument.type.isArrayOfAny() {
+                        ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent([AnyDecodable].self, forKey: .\(key))?.map { $0.value } ?? []")
+                    } else {
+                        ExprSyntax(stringLiteral: "\(argument.name) = try container.decodeIfPresent(\(argument.type).self, forKey: .\(key)) ?? \(argument.defaultValue ?? argument.type.defaultValueExpression)")
+                    }
                 }
             }
         })
@@ -142,13 +156,15 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         // MARK: - Encoder
         let encoder = try FunctionDeclSyntax(SyntaxNodeString(stringLiteral: "public func encode(to encoder: Encoder) throws"), bodyBuilder: {
             DeclSyntax(stringLiteral: "var container = encoder.container(keyedBy: CodingKeys.self)")
-            for argument in arguments {
-                if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(argument.key))")
-                } else if argument.type.isArrayOfAny() {
-                    ExprSyntax(stringLiteral: "try container.encode(\(argument.name).map { AnyEncodable($0) }, forKey: .\(argument.key))")
-                } else {
-                    ExprSyntax(stringLiteral: "try container.encodeIfPresent(\(argument.name), forKey: .\(argument.key))")
+            for argument in arguments where !argument.ignore {
+                for key in argument.keys {
+                    if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
+                        ExprSyntax(stringLiteral: "try container.encode(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(key))")
+                    } else if argument.type.isArrayOfAny() {
+                        ExprSyntax(stringLiteral: "try container.encode(\(argument.name).map { AnyEncodable($0) }, forKey: .\(key))")
+                    } else {
+                        ExprSyntax(stringLiteral: "try container.encodeIfPresent(\(argument.name), forKey: .\(key))")
+                    }
                 }
             }
         })

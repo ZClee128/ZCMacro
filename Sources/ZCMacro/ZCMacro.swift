@@ -21,9 +21,11 @@ public protocol ZCMirror {
 public macro zcCodable() = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableMacro")
 
 @attached(peer)
-public macro zcAnnotation<T: ZCCodable>(key: String? = nil, default: T) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
+public macro zcAnnotation<T: ZCCodable>(key: [String]? = nil, default: T) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
 @attached(peer)
-public macro zcAnnotation(key: String) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
+public macro zcAnnotation(key: [String]) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
+@attached(peer)
+public macro zcAnnotation<T: ZCCodable>(key: [String]? = nil, default: T, ignore: Bool = false) = #externalMacro(module: "ZCMacroMacros", type: "AutoCodableAnnotation")
 
 @attached(extension, conformances: ZCMirror)
 @attached(member, names: named(mirror))
