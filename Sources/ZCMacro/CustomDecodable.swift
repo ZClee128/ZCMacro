@@ -97,6 +97,10 @@ extension String: CustomDecodable {}
 extension Bool: CustomDecodable {}
 extension CGFloat: CustomDecodable {}
 extension Int: CustomDecodable {}
+extension URL: CustomDecodable {}
+extension UUID: CustomDecodable {}
+extension Date: CustomDecodable {}
+extension Data: CustomDecodable {}
 
 public struct CustomKeyedDecodingContainer {
     private let container: KeyedDecodingContainer<CustomDecodableKeys>

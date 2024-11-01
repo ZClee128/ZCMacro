@@ -11,7 +11,8 @@ struct Test {
 //    var address: String?
 //    var optional: Bool?
 //    var array: [String]?
-    var dic: [String: Any]
+    var dic: [String: Any]?
+    var arr: [Any]?
     @zcAnnotation(default: ZCArchiverBox(NSAttributedString(string: "")), ignore: true)
     var people: ZCArchiverBox<NSAttributedString> = ZCArchiverBox(NSAttributedString(string: ""))
 }
@@ -31,7 +32,7 @@ struct Generic {
 }
 
 // key不存在 解析
-let dic: [String: Any] = ["value": ["age": "1", "type": 2, "dic": [:]]]
+let dic: [String: Any] = ["value": ["age1": "1", "type": 2, "dic": ["dd": "33"]]]
 
 do {
     let jsonData = try JSONSerialization.data(withJSONObject: dic, options: [])

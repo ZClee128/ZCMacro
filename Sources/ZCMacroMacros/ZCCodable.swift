@@ -123,12 +123,17 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         )
 
         let arr = arguments.map { tup in
+            // 检查是否为数组类型
             if tup.type.isArrayOfAny() {
                 return "_\(tup.name): \([])"
             }
+            
+            // 检查是否为字典类型
             if tup.type.isDictionaryWithKeyType("String", valueType: "Any") {
                 return "_\(tup.name): \([:])"
             }
+            
+            // 返回默认值表达式
             return "_\(tup.name): \(tup.defaultValue ?? tup.type.defaultValueExpression)"
         }
 
@@ -167,9 +172,9 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 
                 // 根据类型构建相应的赋值表达式
                 if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.mapValues { $0.value } ?? [:]")
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.mapValues { $0.value } ?? nil")
                 } else if argument.type.isArrayOfAny() {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? []")
+                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? nil")
                 } else {
                     ExprSyntax(stringLiteral: "\(argument.name) = try \(finalExpression)")
                 }
@@ -183,9 +188,17 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 // 创建一个编码表达式
                 let encodingExpressions = argument.keys.map { key in
                     if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                        return "try container.encode(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(key))"
+                        if argument.type.isOptional() {
+                            return "try container.encodeIfPresent(\(argument.name)?.mapValues { AnyEncodable($0) }, forKey: .\(key))"
+                        } else {
+                            return "try container.encodeIfPresent(\(argument.name).mapValues { AnyEncodable($0) }, forKey: .\(key))"
+                        }
                     } else if argument.type.isArrayOfAny() {
-                        return "try container.encode(\(argument.name).map { AnyEncodable($0) }, forKey: .\(key))"
+                        if argument.type.isOptional() {
+                            return "try container.encodeIfPresent(\(argument.name)?.map { AnyEncodable($0) }, forKey: .\(key))"
+                        } else {
+                            return "try container.encodeIfPresent(\(argument.name).map { AnyEncodable($0) }, forKey: .\(key))"
+                        }
                     } else {
                         return "try container.encodeIfPresent(\(argument.name), forKey: .\(key))"
                     }
@@ -208,6 +221,13 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
 
 extension TypeSyntax {
     func isDictionaryWithKeyType(_ keyType: String, valueType: String) -> Bool {
+        // 首先检查当前类型是否为可选类型
+        if let optionalType = self.as(OptionalTypeSyntax.self) {
+            // 获取可选类型的包装类型
+            return optionalType.wrappedType.isDictionaryWithKeyType(keyType, valueType: valueType)
+        }
+        
+        // 检查当前类型是否为字典类型
         guard let dictionaryType = self.as(DictionaryTypeSyntax.self) else {
             return false
         }
@@ -217,6 +237,11 @@ extension TypeSyntax {
     }
 
     func isArrayOfAny() -> Bool {
+        // 首先检查当前类型是否为可选类型
+        if let optionalType = self.as(OptionalTypeSyntax.self) {
+            // 获取可选类型的包装类型
+            return optionalType.wrappedType.isArrayOfAny()
+        }
         guard let arrayType = self.as(ArrayTypeSyntax.self) else {
             return false
         }
@@ -226,6 +251,14 @@ extension TypeSyntax {
     
     func isClassType() -> Bool {
         if self.as(ClassDeclSyntax.self) != nil {
+            return true
+        }
+        return false
+    }
+    
+    func isOptional() -> Bool {
+        // 检查当前类型是否为可选类型
+        if let _ = self.as(OptionalTypeSyntax.self) {
             return true
         }
         return false
