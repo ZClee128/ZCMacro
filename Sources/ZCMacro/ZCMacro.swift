@@ -8,7 +8,7 @@
 ///
 import Foundation
 
-public protocol ZCCodable: Codable {
+public protocol ZCCodable: Codable, CustomDecodable {
   static var defaultValue: Self { get }
 }
 

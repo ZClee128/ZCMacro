@@ -149,16 +149,16 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
         print(defineCodingKeys.description)
         // MARK: - Decoder
         let decoder = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: "\(reqString)public init(from decoder: Decoder) throws"), bodyBuilder: {
-            DeclSyntax(stringLiteral: "let container = try decoder.container(keyedBy: CodingKeys.self)")
+            DeclSyntax(stringLiteral: "let standardContainer = try decoder.container(keyedBy: CustomDecodableKeys.self)\nlet container = CustomKeyedDecodingContainer(standardContainer)")
             for argument in arguments where !argument.ignore {
                 // 对于每个 argument 的 key 生成一个解码表达式
                 let decodingExpression = argument.keys.map { key in
                     if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                        return "container.decodeIfPresent([String: AnyDecodable].self, forKey: .\(key))"
+                        return "container.decodeIfPresent([String: AnyDecodable].self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     } else if argument.type.isArrayOfAny() {
-                        return "container.decodeIfPresent([AnyDecodable].self, forKey: .\(key))"
+                        return "container.decodeIfPresent([AnyDecodable].self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     } else {
-                       return "container.decodeIfPresent(\(argument.type).self, forKey: .\(key))"
+                       return "container.decodeIfPresent(\(argument.type).self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     }
                 }.joined(separator: " ?? ")
                 
@@ -171,7 +171,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 } else if argument.type.isArrayOfAny() {
                     ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? []")
                 } else {
-                    ExprSyntax(stringLiteral: "try \(argument.name) = \(finalExpression)")
+                    ExprSyntax(stringLiteral: "\(argument.name) = try \(finalExpression)")
                 }
             }
         })

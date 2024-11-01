@@ -64,11 +64,11 @@ extension URL: ZCCodable {
 }
 
 // 范围类型
-extension ClosedRange: ZCCodable where Bound: ZCCodable {
+extension ClosedRange: ZCCodable, CustomDecodable where Bound: ZCCodable {
     public static var defaultValue: ClosedRange<Bound> { Bound.defaultValue...Bound.defaultValue }
 }
 
-extension Range: ZCCodable where Bound: ZCCodable {
+extension Range: ZCCodable, CustomDecodable where Bound: ZCCodable {
     public static var defaultValue: Range<Bound> { Bound.defaultValue..<Bound.defaultValue }
 }
 
@@ -96,15 +96,15 @@ extension Bool: ZCCodable {
   public static var defaultValue: Bool { false }
 }
 
-extension Optional: ZCCodable where Wrapped: ZCCodable {
-  public static var defaultValue: Optional<Wrapped> { .none }
+extension Optional: ZCCodable, CustomDecodable where Wrapped: ZCCodable {
+    public static var defaultValue: Optional<Wrapped> { .none }
 }
 
-extension Dictionary: ZCCodable where Value: ZCCodable, Key: ZCCodable {
-  public static var defaultValue: Dictionary<Key, Value> { [:] }
+extension Dictionary: ZCCodable, CustomDecodable where Value: ZCCodable, Key: ZCCodable {
+    public static var defaultValue: Dictionary<Key, Value> { [:] }
 }
 
-extension Array: ZCCodable where Element: ZCCodable {
+extension Array: ZCCodable, CustomDecodable where Element: ZCCodable {
   public static var defaultValue: Array<Element> { [] }
 }
 

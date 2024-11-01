@@ -7,8 +7,17 @@
 
 import Foundation
 
-public struct AnyDecodable: Decodable, Encodable {
+public struct AnyDecodable: Decodable, Encodable, ZCCodable {
+    // 实现 ZCCodable 所需的 defaultValue 属性
+    public static var defaultValue: AnyDecodable {
+        return AnyDecodable(nilLiteral: ())
+    }
     public let value: Any
+    
+    // 支持 ZCCodable 的默认值初始化
+    public init(nilLiteral: ()) {
+        self.value = Optional<Any>.none as Any 
+    }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
