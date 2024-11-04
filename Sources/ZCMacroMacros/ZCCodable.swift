@@ -172,9 +172,17 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 
                 // 根据类型构建相应的赋值表达式
                 if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.mapValues { $0.value } ?? nil")
+                    if argument.type.isOptional() {
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.mapValues { $0.value } ?? nil")
+                    } else {
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.mapValues { $0.value } ?? [:]")
+                    }
                 } else if argument.type.isArrayOfAny() {
-                    ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? nil")
+                    if argument.type.isOptional() {
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? nil")
+                    } else {
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? []")
+                    }
                 } else {
                     ExprSyntax(stringLiteral: "\(argument.name) = try \(finalExpression)")
                 }
