@@ -32,3 +32,6 @@ public macro zcAnnotation(key: [String]? = nil, ignore: Bool = false) = #externa
 @attached(extension, conformances: ZCMirror)
 @attached(member, names: named(mirror))
 public macro zcMirror() = #externalMacro(module: "ZCMacroMacros", type: "MirrorMacro")
+@attached(extension, conformances: Codable)
+@attached(member, names: named(CodingKeys), named(init(from:)), named(encode(to:)))
+public macro zcInherit() = #externalMacro(module: "ZCMacroMacros", type: "ZCInheritMacro")

@@ -1,17 +1,21 @@
 import ZCMacro
 import Foundation
 
-@zcCodable
-struct Test {
+class Base: Codable {
+    var age: Int?
+}
+
+@zcInherit
+class Test: Base {
 //    var name: String?
 //    @zcAnnotation(key: ["new_age","age2"],default: 99)
-    var age: Int?
+//    var age: Int?
     var type: TestType?
 //    @zcAnnotation(key: ["new_add"], default: "aa")
 //    var address: String?
 //    var optional: Bool?
 //    var array: [String]?
-    var dic: [String: Any]
+    var dic: [String: Any]?
     var arr: [Any]?
     @zcAnnotation(default: ZCArchiverBox(NSAttributedString(string: "")), ignore: true)
     var people: ZCArchiverBox<NSAttributedString> = ZCArchiverBox(NSAttributedString(string: ""))
@@ -26,17 +30,17 @@ enum TestType: Int, ZCCodable {
     case post = 2
 }
 
-@zcCodable
-struct Generic {
-    var value: Test?
-}
+//@zcCodable
+//struct Generic {
+//    var value: Test?
+//}
 
 // key不存在 解析
-let dic: [String: Any] = ["value": ["age1": "1", "type": 2]]
+let dic: [String: Any] = ["age": 1, "type": 2, "dic": ["aaa": 11,"bbb": "33"]]
 
 do {
     let jsonData = try JSONSerialization.data(withJSONObject: dic, options: [])
-    let value = try JSONDecoder().decode(Generic.self, from: jsonData)
+    let value = try JSONDecoder().decode(Test.self, from: jsonData)
     print(value)
 } catch {
     print("Error: \(error)")

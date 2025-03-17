@@ -16,6 +16,7 @@ struct ZCPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         AutoCodableMacro.self,
         AutoCodableAnnotation.self,
-        MirrorMacro.self
+        MirrorMacro.self,
+        ZCInheritMacro.self
     ]
 }
