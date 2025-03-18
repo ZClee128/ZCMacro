@@ -7,6 +7,7 @@ Swift宏扩展库，提供`Codable`和`Mirror`协议的自动化实现
 - @zcCodable：自动生成`Codable`协议实现
 - @zcMirror：自动生成类型反射信息
 - @zcAnnotation：支持自定义编解码键和默认值
+- @zcInherit：支持继承Codable协议的子类
 
 ## 安装
 
