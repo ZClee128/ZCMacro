@@ -1,5 +1,6 @@
 # ZCMacro
 
+[![CocoaPods Version](https://img.shields.io/cocoapods/v/ZCMacro.svg)](https://cocoapods.org/pods/ZCMacro)
 Swift宏扩展库，提供`Codable`和`Mirror`协议的自动化实现
 
 ## 功能特性
