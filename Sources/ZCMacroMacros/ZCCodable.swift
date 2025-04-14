@@ -133,13 +133,22 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 return "_\(tup.name): \([:])"
             }
             
+            // 检查是否为 Any 类型
+            if tup.type.isAnyType() {
+                if tup.type.isOptional() {
+                    return "_\(tup.name): nil"
+                } else {
+                    return "_\(tup.name): Any.defaultValue"
+                }
+            }
+            
             // 返回默认值表达式
             return "_\(tup.name): \(tup.defaultValue ?? tup.type.defaultValueExpression)"
         }
 
         // MARK: - defaultValue
-        let defaultBody: ExprSyntax = "\(raw: typeName)(\(raw: arr.joined(separator: ",")))"
-        let defaultDeclSyntax: VariableDeclSyntax = try VariableDeclSyntax("public static var defaultValue: \(raw: typeName)") {
+        let defaultBody: ExprSyntax = "\(raw: typeName)(\(raw: arr.joined(separator: ","))) as! Self"
+        let defaultDeclSyntax: VariableDeclSyntax = try VariableDeclSyntax("public static var defaultValue: Self") {
             defaultBody
         }
         
@@ -162,8 +171,10 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                         return "container.decodeIfPresent([String: AnyDecodable].self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     } else if argument.type.isArrayOfAny() {
                         return "container.decodeIfPresent([AnyDecodable].self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
+                    } else if argument.type.isAnyType() {
+                        return "container.decodeIfPresent(AnyDecodable.self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     } else {
-                       return "container.decodeIfPresent(\(argument.type).self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
+                        return "container.decodeIfPresent(\(argument.type).self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     }
                 }.joined(separator: " ?? ")
                 
@@ -182,6 +193,12 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                         ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? nil")
                     } else {
                         ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.map { $0.value } ?? []")
+                    }
+                } else if argument.type.isAnyType() {
+                    if argument.type.isOptional() {
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.value ?? nil")
+                    } else {
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.value ?? nil")
                     }
                 } else {
                     ExprSyntax(stringLiteral: "\(argument.name) = try \(finalExpression)")
@@ -206,6 +223,12 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                             return "try container.encodeIfPresent(\(argument.name)?.map { AnyEncodable($0) }, forKey: .\(key))"
                         } else {
                             return "try container.encodeIfPresent(\(argument.name).map { AnyEncodable($0) }, forKey: .\(key))"
+                        }
+                    } else if argument.type.isAnyType() {
+                        if argument.type.isOptional() {
+                            return "try container.encodeIfPresent(AnyEncodable(\(argument.name)), forKey: .\(key))"
+                        } else {
+                            return "try container.encode(AnyEncodable(\(argument.name)), forKey: .\(key))"
                         }
                     } else {
                         return "try container.encodeIfPresent(\(argument.name), forKey: .\(key))"
@@ -274,5 +297,14 @@ extension TypeSyntax {
     
     var defaultValueExpression: String {
         return "\(self).defaultValue"
+    }
+    
+    func isAnyType() -> Bool {
+        // 首先检查是否为可选类型
+        if let optionalType = self.as(OptionalTypeSyntax.self) {
+            return optionalType.wrappedType.isAnyType()
+        }
+        // 检查是否为 Any 类型
+        return self.description.trimmingCharacters(in: .whitespacesAndNewlines) == "Any"
     }
 }

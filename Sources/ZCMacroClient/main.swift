@@ -5,8 +5,8 @@ class Base: Codable {
     var age: Int?
 }
 
-@zcInherit
-class Test: Base {
+@zcCodable
+class Test: Codable {
 //    var name: String?
 //    @zcAnnotation(key: ["new_age","age2"],default: 99)
 //    var age: Int?
@@ -15,7 +15,7 @@ class Test: Base {
 //    var address: String?
 //    var optional: Bool?
 //    var array: [String]?
-    var dic: [String: Any]?
+    var dic: Any?
     var arr: [Any]?
     @zcAnnotation(default: ZCArchiverBox(NSAttributedString(string: "")), ignore: true)
     var people: ZCArchiverBox<NSAttributedString> = ZCArchiverBox(NSAttributedString(string: ""))
