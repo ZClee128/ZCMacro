@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'ZCMacro'
-  s.version          = '1.1.8'
+  s.version          = '1.1.9'
   s.summary          = 'A proof of concept macro to show they can work with cocoapods.'
   s.description      = <<-DESC
 A proof of concept macro to show they can work with cocoapods.
