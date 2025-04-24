@@ -48,9 +48,16 @@ extension CustomDecodable {
             }
         } else if Self.self == Float.self || Self.self == CGFloat.self || Self.self == Optional<Float>.self || Self.self == Optional<CGFloat>.self {
             if let float = try? container.decodeIfPresent(Float.self, forKey: key) {
-                return float as? Self
-            } else if let string = try? container.decodeIfPresent(String.self, forKey: key), let float = Double(string) {
-                return float as? Self
+                return (Self.self == CGFloat.self || Self.self == Optional<CGFloat>.self)
+                ? CGFloat(float) as? Self
+                : float as? Self
+            } else if let string = try? container.decodeIfPresent(String.self, forKey: key),
+                      let double = Double(string) {
+                if Self.self == CGFloat.self || Self.self == Optional<CGFloat>.self {
+                    return CGFloat(double) as? Self
+                } else {
+                    return Float(double) as? Self
+                }
             } else {
                 return nil
             }
