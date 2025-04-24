@@ -98,6 +98,8 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 defaultValue = defaultValue ?? "[:]"
             } else if type.isArrayOfAny() {
                 defaultValue = defaultValue ?? "[]"
+            } else if type.isAnyType() {
+                defaultValue = defaultValue ?? "()"
             }
             // the property name is used as the default key
             return (name: name, type: type, keys: keys, defaultValue: defaultValue, ignore: ignore)
@@ -138,7 +140,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                 if tup.type.isOptional() {
                     return "_\(tup.name): nil"
                 } else {
-                    return "_\(tup.name): Any.defaultValue"
+                    return "_\(tup.name): ()"
                 }
             }
             
@@ -198,7 +200,7 @@ public struct AutoCodableMacro: MemberMacro, ExtensionMacro {
                     if argument.type.isOptional() {
                         ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.value ?? nil")
                     } else {
-                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.value ?? nil")
+                        ExprSyntax(stringLiteral: "\(argument.name) = (try \(decodingExpression))?.value ?? ()")
                     }
                 } else {
                     ExprSyntax(stringLiteral: "\(argument.name) = try \(finalExpression)")
