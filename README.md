@@ -3,6 +3,9 @@
 [![CocoaPods Version](https://img.shields.io/cocoapods/v/ZCMacro.svg)](https://cocoapods.org/pods/ZCMacro)
 Swift宏扩展库，提供`Codable`和`Mirror`协议的自动化实现
 
+# 搭配使用
+搭配我另外一个库ZCJOSH(https://github.com/ZClee128/ZCJSON), 会更好的解析json数据，更方便，ZCJOSN是包含了ZCMacro的
+
 ## 功能特性
 - @zcCodable：自动生成`Codable`协议实现
 - @zcMirror：自动生成类型反射信息
