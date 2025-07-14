@@ -102,12 +102,13 @@ public struct ZCInheritMacro: MemberMacro, ExtensionMacro {
             for argument in arguments where !argument.ignore {
                 // 对于每个 argument 的 key 生成一个解码表达式
                 let decodingExpression = argument.keys.map { key in
+                    let typeExpr = argument.type.unwrappedOptionalType
                     if argument.type.isDictionaryWithKeyType("String", valueType: "Any") {
                         return "container.decodeIfPresent([String: AnyDecodable].self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     } else if argument.type.isArrayOfAny() {
                         return "container.decodeIfPresent([AnyDecodable].self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     } else {
-                       return "container.decodeIfPresent(\(argument.type).self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
+                       return "container.decodeIfPresent(\(typeExpr).self, forKey: CustomDecodableKeys(stringValue: \"\(key)\"))"
                     }
                 }.joined(separator: " ?? ")
                 
@@ -169,5 +170,14 @@ public struct ZCInheritMacro: MemberMacro, ExtensionMacro {
                                   DeclSyntax(encoder)
                                  ])
         return decls
+    }
+}
+
+extension TypeSyntax {
+    var unwrappedOptionalType: TypeSyntax {
+        if let optionalType = self.as(OptionalTypeSyntax.self) {
+            return optionalType.wrappedType.trimmed
+        }
+        return self.trimmed
     }
 }
