@@ -8,8 +8,8 @@ class Base: Codable {
 @zcCodable
 class Test: Codable {
 //    var name: String?
-//    @zcAnnotation(key: ["new_age","age2"],default: 99)
-//    var age: Int?
+    @zcAnnotation(key: ["new_age","age2"])
+    var age: String?
     var type: TestType?
 //    @zcAnnotation(key: ["new_add"], default: "aa")
 //    var address: String?

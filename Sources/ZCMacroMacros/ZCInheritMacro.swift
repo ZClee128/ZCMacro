@@ -179,10 +179,11 @@ extension TypeSyntax {
         while true {
             if let optional = type.as(OptionalTypeSyntax.self) {
                 type = optional.wrappedType.trimmed
-            } else if let some = type.as(IdentifierTypeSyntax.self),
-                      some.name.text == "Optional",
-                      let genericArgs = some.genericArgumentClause?.arguments.first?.argument {
-                type = genericArgs.trimmed
+            } else if let identifier = type.as(IdentifierTypeSyntax.self),
+                      identifier.name.text == "Optional",
+                      let genericArgs = identifier.genericArgumentClause?.arguments,
+                      let firstArg = genericArgs.first {
+                type = firstArg.argument.trimmed
             } else {
                 break
             }
