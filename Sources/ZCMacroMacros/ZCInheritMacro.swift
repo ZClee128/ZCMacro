@@ -176,11 +176,12 @@ public struct ZCInheritMacro: MemberMacro, ExtensionMacro {
 extension TypeSyntax {
     var unwrappedOptionalType: TypeSyntax {
         var type = self.trimmed
+
         while true {
             if let optional = type.as(OptionalTypeSyntax.self) {
                 type = optional.wrappedType.trimmed
             } else if let identifier = type.as(IdentifierTypeSyntax.self),
-                      identifier.name.text == "Optional",
+                      identifier.isOptionalTypeName,
                       let genericArgs = identifier.genericArgumentClause?.arguments,
                       let firstArg = genericArgs.first {
                 type = firstArg.argument.trimmed
@@ -188,6 +189,13 @@ extension TypeSyntax {
                 break
             }
         }
+
         return type
+    }
+}
+
+private extension IdentifierTypeSyntax {
+    var isOptionalTypeName: Bool {
+        self.name.text == "Optional" || self.name.text.hasSuffix(".Optional")
     }
 }
