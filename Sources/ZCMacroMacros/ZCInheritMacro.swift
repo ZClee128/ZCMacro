@@ -175,9 +175,18 @@ public struct ZCInheritMacro: MemberMacro, ExtensionMacro {
 
 extension TypeSyntax {
     var unwrappedOptionalType: TypeSyntax {
-        if let optionalType = self.as(OptionalTypeSyntax.self) {
-            return optionalType.wrappedType.trimmed
+        var type = self.trimmed
+        while true {
+            if let optional = type.as(OptionalTypeSyntax.self) {
+                type = optional.wrappedType.trimmed
+            } else if let some = type.as(IdentifierTypeSyntax.self),
+                      some.name.text == "Optional",
+                      let genericArgs = some.genericArgumentClause?.arguments.first?.argument {
+                type = genericArgs.trimmed
+            } else {
+                break
+            }
         }
-        return self.trimmed
+        return type
     }
 }
